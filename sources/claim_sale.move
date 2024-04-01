@@ -114,6 +114,16 @@ module movegpt::claim_sale {
         init_mint(operator);
     }
 
+    #[view]
+    public fun claimer_ido_info_view(claimer: address): Claimer acquires Sales {
+        *get_claimers_info(claimer, &mut get_sales_config().ido_round)
+    }
+
+    #[view]
+    public fun claimer_private_info_view(claimer: address): Claimer acquires Sales {
+        *get_claimers_info(claimer, &mut get_sales_config().private_round)
+    }
+
     inline fun init_mint(operator: address) {
         let private_coin = movegpt_token::mint(INIT_PRIVATE_ROUND_AMOUNT);
         let ido_coin = movegpt_token::mint(INIT_IDO_ROUND_AMOUNT);
