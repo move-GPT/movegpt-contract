@@ -1,0 +1,15 @@
+[package]
+name = "movegpt"
+version = "1.0.0"
+
+[addresses]
+movegpt = "_"
+deployer = "_"
+initial_liquidity = "0xafbf6698be2a230377e73abddf41cd5118a351a1bf5108fe024d0081dce44c50"
+team = "0x01fd86203f65078209694d16c37422ce4024c53c623049151804c171a6293a15"
+dev = "0x3e76c71e09b1a2487cc581651541aa5ea9fd05d482d18746d2279a6acbeb4b10"
+staking_rewards = "0xc2f8d3a025dd815d8139891eeb155e1cd1aeab1dabbe16f953c239f4c32eba9a"
+marketing = "0xfb2add4d6368a02d7210039c206e980d33d0f62c3a46ba7dcfa667333d7d6201"
+[dependencies]
+AptosFramework = { local = "../../framework/aptos-framework" }
+AptosTokenObjects = { local = "../../framework/aptos-token-objects" }
