@@ -1,7 +1,4 @@
 module movegpt::claim_sale {
-
-    use std::option;
-    use std::option::Option;
     use std::signer;
     use std::vector;
     use aptos_std::math64;
@@ -109,11 +106,6 @@ module movegpt::claim_sale {
         get_sales_config().ido_round.total_claimed
     }
 
-    public entry fun initialize(admin: &signer, operator: address) {
-        assert!(signer::address_of(admin) == @deployer, ENOT_AUTHORIZED);
-        init_mint(operator);
-    }
-
     #[view]
     public fun claimer_ido_info_view(claimer: address): Claimer acquires Sales {
         *get_claimers_info(claimer, &mut get_sales_config().ido_round)
@@ -122,6 +114,11 @@ module movegpt::claim_sale {
     #[view]
     public fun claimer_private_info_view(claimer: address): Claimer acquires Sales {
         *get_claimers_info(claimer, &mut get_sales_config().private_round)
+    }
+
+    public entry fun initialize(admin: &signer, operator: address) {
+        assert!(signer::address_of(admin) == @deployer, ENOT_AUTHORIZED);
+        init_mint(operator);
     }
 
     inline fun init_mint(operator: address) {
@@ -179,48 +176,75 @@ module movegpt::claim_sale {
         sales_config.private_round.start_time = new_start_time;
     }
 
-    public entry fun set_vesting_config_entry(
+    public entry fun set_vesting_config_total_bought_entry(
         admin: &signer,
         round_id: u8,
-        total_bought: Option<u64>,
-        lock_duration: Option<u64>,
-        periods_time: Option<u64>,
-        tge: Option<u64>
+        new_total_bought: u64,
     ) acquires Sales {
         let vesting = get_sales_config();
         assert!(signer::address_of(admin) == vesting.operator, ENOT_AUTHORIZED);
         if (round_id == 0) {
             let vesting_config = &mut vesting.private_round;
-            set_vesting_config(vesting_config,total_bought, lock_duration, periods_time, tge);
+            vesting_config.total_bought = new_total_bought;
         };
         if (round_id == 1) {
             let vesting_config = &mut vesting.ido_round;
-            set_vesting_config(vesting_config,total_bought, lock_duration, periods_time, tge);
+            vesting_config.total_bought = new_total_bought;
         };
     }
 
-    inline fun set_vesting_config(
-        vesting_config: &mut ConfigRoud,
-        new_total_bought: Option<u64>,
-        new_lock_duration: Option<u64>,
-        new_periods_time: Option<u64>,
-        new_tge: Option<u64>
-    ) {
-        if (option::is_some(&new_total_bought)) {
-            vesting_config.total_bought = option::extract(&mut new_total_bought)
+    public entry fun set_vesting_config_lock_duration_entry(
+        admin: &signer,
+        round_id: u8,
+        new_lock_duration: u64,
+    ) acquires Sales {
+        let vesting = get_sales_config();
+        assert!(signer::address_of(admin) == vesting.operator, ENOT_AUTHORIZED);
+        if (round_id == 0) {
+            let vesting_config = &mut vesting.private_round;
+            vesting_config.lock_duration = new_lock_duration;
         };
-        if (option::is_some(&new_lock_duration)) {
-            vesting_config.lock_duration = option::extract(&mut new_lock_duration)
-        };
-        if (option::is_some(&new_periods_time)) {
-            vesting_config.periods = option::extract(&mut new_periods_time)
-        };
-        if (option::is_some(&new_tge)) {
-            vesting_config.tge = option::extract(&mut new_tge)
+        if (round_id == 1) {
+            let vesting_config = &mut vesting.ido_round;
+            vesting_config.lock_duration = new_lock_duration;
         };
     }
 
-    public entry fun refund_ido_entry(claimer: &signer, round_id: u8) acquires Sales {
+    public entry fun set_vesting_config_periods_time_entry(
+        admin: &signer,
+        round_id: u8,
+        new_periods_time: u64,
+    ) acquires Sales {
+        let vesting = get_sales_config();
+        assert!(signer::address_of(admin) == vesting.operator, ENOT_AUTHORIZED);
+        if (round_id == 0) {
+            let vesting_config = &mut vesting.private_round;
+            vesting_config.periods = new_periods_time;
+        };
+        if (round_id == 1) {
+            let vesting_config = &mut vesting.ido_round;
+            vesting_config.periods = new_periods_time;
+        };
+    }
+
+    public entry fun set_vesting_config_tge_entry(
+        admin: &signer,
+        round_id: u8,
+        new_periods_time: u64,
+    ) acquires Sales {
+        let vesting = get_sales_config();
+        assert!(signer::address_of(admin) == vesting.operator, ENOT_AUTHORIZED);
+        if (round_id == 0) {
+            let vesting_config = &mut vesting.private_round;
+            vesting_config.tge = new_periods_time;
+        };
+        if (round_id == 1) {
+            let vesting_config = &mut vesting.ido_round;
+            vesting_config.tge = new_periods_time;
+        };
+    }
+
+    public entry fun refund_entry(claimer: &signer, round_id: u8) acquires Sales {
         let claimer_address = signer::address_of(claimer);
         let sales_config = get_sales_config();
         if (round_id == 0) {
@@ -249,7 +273,6 @@ module movegpt::claim_sale {
                 time_stamp: timestamp::now_seconds(),
             });
         }
-
     }
 
     public entry fun claim_private_entry(claimer: &signer) acquires Sales {

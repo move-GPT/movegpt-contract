@@ -1,6 +1,4 @@
 module movegpt::vesting {
-    use std::option;
-    use std::option::Option;
     use std::signer;
     use std::vector;
     use aptos_std::math64;
@@ -141,56 +139,119 @@ module movegpt::vesting {
         get_vesting().operator = new_operator;
     }
 
-    public entry fun set_vesting_config_entry(
+    public entry fun set_vesting_config_start_time_entry(
         admin: &signer,
         vesting_config_id: u8,
-        start_time: Option<u64>,
-        duration_time: Option<u64>,
-        periods_time: Option<u64>,
-        tge: Option<u64>
+        new_start_time: u64,
     ) acquires Vesting {
         let vesting = get_vesting();
         assert!(signer::address_of(admin) == vesting.operator, ENOT_AUTHORIZED);
         if (vesting_config_id == 0) {
             let vesting_config = &mut vesting.team;
-            set_vesting_config(vesting_config,start_time, duration_time, periods_time, tge);
+            vesting_config.start = new_start_time;
         };
         if (vesting_config_id == 1) {
             let vesting_config = &mut vesting.dev;
-            set_vesting_config(vesting_config,start_time, duration_time, periods_time, tge);
+            vesting_config.start = new_start_time;
         };
         if (vesting_config_id == 2) {
             let vesting_config = &mut vesting.staking_reward;
-            set_vesting_config(vesting_config,start_time, duration_time, periods_time, tge);
+            vesting_config.start = new_start_time;
         };
         if (vesting_config_id == 3) {
             let vesting_config = &mut vesting.marketing;
-            set_vesting_config(vesting_config,start_time, duration_time, periods_time, tge);
+            vesting_config.start = new_start_time;
         };
         if (vesting_config_id == 4) {
             let vesting_config = &mut vesting.initial_liquidity;
-            set_vesting_config(vesting_config,start_time, duration_time, periods_time, tge);
+            vesting_config.start = new_start_time;
         };
     }
 
-    inline fun set_vesting_config(
-        vesting_config: &mut VestingConfig,
-        new_start_time: Option<u64>,
-        new_duration_time: Option<u64>,
-        new_periods_time: Option<u64>,
-        new_tge: Option<u64>
-    ) {
-        if (option::is_some(&new_start_time)) {
-            vesting_config.start = option::extract(&mut new_start_time)
+    public entry fun set_vesting_config_duration_time_entry(
+        admin: &signer,
+        vesting_config_id: u8,
+        new_duration_time: u64,
+    ) acquires Vesting {
+        let vesting = get_vesting();
+        assert!(signer::address_of(admin) == vesting.operator, ENOT_AUTHORIZED);
+        if (vesting_config_id == 0) {
+            let vesting_config = &mut vesting.team;
+            vesting_config.vesting_duration = new_duration_time;
         };
-        if (option::is_some(&new_duration_time)) {
-            vesting_config.vesting_duration = option::extract(&mut new_duration_time)
+        if (vesting_config_id == 1) {
+            let vesting_config = &mut vesting.dev;
+            vesting_config.vesting_duration = new_duration_time;
         };
-        if (option::is_some(&new_periods_time)) {
-            vesting_config.vesting_periods = option::extract(&mut new_periods_time)
+        if (vesting_config_id == 2) {
+            let vesting_config = &mut vesting.staking_reward;
+            vesting_config.vesting_duration = new_duration_time;
         };
-        if (option::is_some(&new_tge)) {
-            vesting_config.tge = option::extract(&mut new_tge)
+        if (vesting_config_id == 3) {
+            let vesting_config = &mut vesting.marketing;
+            vesting_config.vesting_duration = new_duration_time;
+        };
+        if (vesting_config_id == 4) {
+            let vesting_config = &mut vesting.initial_liquidity;
+            vesting_config.vesting_duration = new_duration_time;
+        };
+    }
+
+    public entry fun set_vesting_config_periods_entry(
+        admin: &signer,
+        vesting_config_id: u8,
+        new_periods_time: u64,
+    ) acquires Vesting {
+        let vesting = get_vesting();
+        assert!(signer::address_of(admin) == vesting.operator, ENOT_AUTHORIZED);
+        if (vesting_config_id == 0) {
+            let vesting_config = &mut vesting.team;
+            vesting_config.vesting_periods = new_periods_time;
+        };
+        if (vesting_config_id == 1) {
+            let vesting_config = &mut vesting.dev;
+            vesting_config.vesting_periods = new_periods_time;
+        };
+        if (vesting_config_id == 2) {
+            let vesting_config = &mut vesting.staking_reward;
+            vesting_config.vesting_periods = new_periods_time;
+        };
+        if (vesting_config_id == 3) {
+            let vesting_config = &mut vesting.marketing;
+            vesting_config.vesting_periods = new_periods_time;
+        };
+        if (vesting_config_id == 4) {
+            let vesting_config = &mut vesting.initial_liquidity;
+            vesting_config.vesting_periods = new_periods_time;
+        };
+    }
+
+    public entry fun set_vesting_config_tge_entry(
+        admin: &signer,
+        vesting_config_id: u8,
+        tge: u64
+    ) acquires Vesting {
+        let vesting = get_vesting();
+        assert!(signer::address_of(admin) == vesting.operator, ENOT_AUTHORIZED);
+        if (vesting_config_id == 0) {
+            let vesting_config = &mut vesting.team;
+            vesting_config.tge = tge;
+        };
+        if (vesting_config_id == 1) {
+            let vesting_config = &mut vesting.dev;
+            vesting_config.tge = tge;
+        };
+        if (vesting_config_id == 2) {
+            let vesting_config = &mut vesting.staking_reward;
+            vesting_config.tge = tge;
+        };
+        if (vesting_config_id == 3) {
+            let vesting_config = &mut vesting.marketing;
+            vesting_config.tge = tge;
+        };
+        if (vesting_config_id == 4) {
+            let vesting_config = &mut vesting.initial_liquidity;
+            vesting_config.tge = tge;
         };
     }
 

@@ -59,45 +59,30 @@ module movegpt::test_vesting {
             INIT_MARKETING_AMOUNT + INIT_AIRDROP_AMOUNT + INIT_STAKING_REWARD_AMOUNT + INIT_DEV_AMOUNT + INIT_TEAM_AMOUNT + INIT_INITIAL_LIQUIDITY_AMOUNT + INIT_IDO_ROUND_AMOUNT + INIT_PRIVATE_ROUND_AMOUNT == INIT_MINT_AMOUNT,
             1
         );
-        vesting::set_vesting_config_entry(
+        vesting::set_vesting_config_start_time_entry(
             operator,
             0,
-            option::some(timestamp::now_seconds() - 1),
-            option::none(),
-            option::none(),
-            option::none()
+            timestamp::now_seconds() - 1,
         );
-        vesting::set_vesting_config_entry(
+        vesting::set_vesting_config_start_time_entry(
             operator,
             1,
-            option::some(timestamp::now_seconds() - 1),
-            option::none(),
-            option::none(),
-            option::none()
+            timestamp::now_seconds() - 1,
         );
-        vesting::set_vesting_config_entry(
+        vesting::set_vesting_config_start_time_entry(
             operator,
             2,
-            option::some(timestamp::now_seconds() - 1),
-            option::none(),
-            option::none(),
-            option::none()
+            timestamp::now_seconds() - 1,
         );
-        vesting::set_vesting_config_entry(
+        vesting::set_vesting_config_start_time_entry(
             operator,
             3,
-            option::some(timestamp::now_seconds() - 1),
-            option::none(),
-            option::none(),
-            option::none()
+            timestamp::now_seconds() - 1,
         );
-        vesting::set_vesting_config_entry(
+        vesting::set_vesting_config_start_time_entry(
             operator,
             4,
-            option::some(timestamp::now_seconds() - 1),
-            option::none(),
-            option::none(),
-            option::none()
+            timestamp::now_seconds() - 1,
         );
         let nfts_marketing = vesting::test_fun_claim_with_lock(marketing);
         let marketing_balance = movegpt_token::balance(@marketing);
