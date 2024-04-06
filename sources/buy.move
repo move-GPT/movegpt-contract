@@ -63,8 +63,8 @@ module movegpt::buy {
         });
     }
 
-    public entry fun buy_entry<CoinType>(buyer: &signer, amount: u64, order_id: u256,campaign_id: u256, signature: vector<u8>) acquires BuyOrders {
-        buy<CoinType>(buyer, amount, order_id, campaign_id, signature);
+    public entry fun buy_entry<CoinType>(buyer: &signer, amount: u64, order_id: u256,campaign_id: u256, signature: vector<u8>, nonce: u8) acquires BuyOrders {
+        buy<CoinType>(buyer, amount, order_id, campaign_id, signature, nonce);
     }
 
     public entry fun regist_campaign_entry(operator: &signer, campaign_id: u256) acquires BuyOrders {
@@ -120,7 +120,7 @@ module movegpt::buy {
         );
     }
 
-    public fun buy<CoinType>(buyer: &signer, amount: u64, order_id: u256, campaign_id: u256, signature: vector<u8>) acquires BuyOrders {
+    public fun buy<CoinType>(buyer: &signer, amount: u64, order_id: u256, campaign_id: u256, signature: vector<u8>, nonce: u8) acquires BuyOrders {
         let buyer_address = signer::address_of(buyer);
         let buy_orders = get_buy_orders_mut();
         assert!(!order_is_exist(order_id,buy_orders), ENOT_ORDER_ALREADY_EXIT);
@@ -133,7 +133,8 @@ module movegpt::buy {
         string::append(&mut begin_of_mess, type_info);
         string::append(&mut begin_of_mess, string_utils::to_string(&order_id));
         string::append(&mut begin_of_mess, string_utils::to_string(&buyer_address));
-        string::append(&mut begin_of_mess, string::utf8(b"\\nnonce: 0"));
+        string::append(&mut begin_of_mess, string::utf8(b"\\nnonce: "));
+        string::append(&mut begin_of_mess, string_utils::to_string(&nonce));
         let upk = new_unvalidated_public_key_from_bytes(buy_orders.admin_pubkey);
         let check = signature_verify_strict(
             &new_signature_from_bytes(signature),

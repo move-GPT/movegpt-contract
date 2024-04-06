@@ -39,7 +39,8 @@ module movegpt::test_buy {
             amount,
             order_id,
             1,
-            x"41f7ec062b227b3482905036cc22007c43283d87599c8d15ff7e4257da470b91291f0deb18eb05525bf439c9020d80796cccb9383a3c781c057bd44151cd5205"
+            x"41f7ec062b227b3482905036cc22007c43283d87599c8d15ff7e4257da470b91291f0deb18eb05525bf439c9020d80796cccb9383a3c781c057bd44151cd5205",
+            0
         );
     }
 
@@ -58,7 +59,7 @@ module movegpt::test_buy {
         string::append(&mut begin_of_mess, string::utf8(b"\\nnonce: 0"));
         let check = signature_verify_strict(
             &new_signature_from_bytes(x"41f7ec062b227b3482905036cc22007c43283d87599c8d15ff7e4257da470b91291f0deb18eb05525bf439c9020d80796cccb9383a3c781c057bd44151cd5205"),
-    &upk,
+            &upk,
             *string::bytes(&begin_of_mess)
         );
         assert!(check, 1);
@@ -124,20 +125,22 @@ module movegpt::test_buy {
         string::append(&mut begin_of_mess, string_utils::to_string(&order_id));
         string::append(&mut begin_of_mess, string_utils::to_string(&signer::address_of(buyer)));
         string::append(&mut begin_of_mess, string::utf8(b"\\nnonce: 0"));
-       buy<AptosCoin>(
+        buy<AptosCoin>(
             buyer,
             amount,
             order_id,
             1,
-            x"41f7ec062b227b3482905036cc22007c43283d87599c8d15ff7e4257da470b91291f0deb18eb05525bf439c9020d80796cccb9383a3c781c057bd44151cd5205"
+            x"41f7ec062b227b3482905036cc22007c43283d87599c8d15ff7e4257da470b91291f0deb18eb05525bf439c9020d80796cccb9383a3c781c057bd44151cd5205",
+            0
         );
 
-       buy<AptosCoin>(
+        buy<AptosCoin>(
             buyer,
             amount,
             order_id,
             1,
-            x"41f7ec062b227b3482905036cc22007c43283d87599c8d15ff7e4257da470b91291f0deb18eb05525bf439c9020d80796cccb9383a3c781c057bd44151cd5205"
+            x"41f7ec062b227b3482905036cc22007c43283d87599c8d15ff7e4257da470b91291f0deb18eb05525bf439c9020d80796cccb9383a3c781c057bd44151cd5205",
+            0
         );
     }
 
@@ -160,12 +163,13 @@ module movegpt::test_buy {
         string::append(&mut begin_of_mess, string_utils::to_string(&order_id));
         string::append(&mut begin_of_mess, string_utils::to_string(&signer::address_of(buyer)));
         string::append(&mut begin_of_mess, string::utf8(b"\\nnonce: 0"));
-       buy<AptosCoin>(
+        buy<AptosCoin>(
             buyer,
             amount,
             order_id,
             1,
-            x"41f7ec062b227b3482905036cc22007c43283d87599c8d15ff7e4257da470b91291f0deb18eb05525bf439c9020d80796cccb9383a3c781c057bd44151cd5205"
+            x"41f7ec062b227b3482905036cc22007c43283d87599c8d15ff7e4257da470b91291f0deb18eb05525bf439c9020d80796cccb9383a3c781c057bd44151cd5205",
+            0
         );
     }
 }
