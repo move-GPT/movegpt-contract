@@ -98,12 +98,12 @@ module movegpt::claim_sale {
 
     #[view]
     public fun private_start_view(): u64 acquires Sales {
-        get_sales_config().ido_round.start_time
+        get_sales_config().private_round.start_time
     }
 
     #[view]
     public fun private_total_claimed_view(): u64 acquires Sales {
-        get_sales_config().ido_round.total_claimed
+        get_sales_config().private_round.total_claimed
     }
 
     #[view]
