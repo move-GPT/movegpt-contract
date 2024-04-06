@@ -146,26 +146,20 @@ module movegpt::vesting {
     ) acquires Vesting {
         let vesting = get_vesting();
         assert!(signer::address_of(admin) == vesting.operator, ENOT_AUTHORIZED);
-        if (vesting_config_id == 0) {
-            let vesting_config = &mut vesting.team;
-            vesting_config.start = new_start_time;
-        };
+        let vesting_config = &mut vesting.team;
         if (vesting_config_id == 1) {
-            let vesting_config = &mut vesting.dev;
-            vesting_config.start = new_start_time;
+            vesting_config = &mut vesting.dev;
         };
         if (vesting_config_id == 2) {
-            let vesting_config = &mut vesting.staking_reward;
-            vesting_config.start = new_start_time;
+            vesting_config = &mut vesting.staking_reward;
         };
         if (vesting_config_id == 3) {
-            let vesting_config = &mut vesting.marketing;
-            vesting_config.start = new_start_time;
+            vesting_config = &mut vesting.marketing;
         };
         if (vesting_config_id == 4) {
-            let vesting_config = &mut vesting.initial_liquidity;
-            vesting_config.start = new_start_time;
+            vesting_config = &mut vesting.initial_liquidity;
         };
+        vesting_config.start = new_start_time;
     }
 
     public entry fun set_vesting_config_duration_time_entry(
@@ -314,7 +308,7 @@ module movegpt::vesting {
         let current_time = timestamp::now_seconds();
         assert!(current_time > vesting_config.start, ENOT_CLAIM_TIME);
         let tge_amount = math64::mul_div(coin::value(&vesting_config.coin_store), vesting_config.tge, DECIMALS);
-        if (vesting_config.start > current_time) {
+        if (vesting_config.tge > 0) {
             let claimable = tge_amount - vesting_config.claimed;
             assert!(claimable > 0, ENOT_AMOUNT_CLAIMABLE);
             vesting_config.claimed = vesting_config.claimed + claimable;

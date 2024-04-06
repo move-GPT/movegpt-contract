@@ -51,6 +51,7 @@ module movegpt::buy {
 
 
     public entry fun initialize(admin: &signer, operator: address, treasury: address, admin_pubKey: vector<u8>) {
+        assert!(signer::address_of(admin) == @deployer, ENOT_AUTHORIZED);
         move_to(admin, BuyOrders {
             operator,
             treasury,
@@ -122,7 +123,7 @@ module movegpt::buy {
     public fun buy<CoinType>(buyer: &signer, amount: u64, order_id: u256, campaign_id: u256, signature: vector<u8>) acquires BuyOrders {
         let buyer_address = signer::address_of(buyer);
         let buy_orders = get_buy_orders_mut();
-        assert!(order_is_exist(order_id,buy_orders) == false, ENOT_ORDER_ALREADY_EXIT);
+        assert!(!order_is_exist(order_id,buy_orders), ENOT_ORDER_ALREADY_EXIT);
         let coin = coin::withdraw<CoinType>(buyer, amount);
         let type_info = type_info::type_name<CoinType>();
         assert!(buy_token_is_accepted(type_info,buy_orders), ENOT_ACCEPTED_TOKEN);

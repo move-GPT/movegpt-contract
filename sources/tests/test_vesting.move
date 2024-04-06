@@ -1,7 +1,5 @@
 module movegpt::test_vesting {
     #[test_only]
-    use std::option;
-    #[test_only]
     use std::signer;
     #[test_only]
     use std::vector;

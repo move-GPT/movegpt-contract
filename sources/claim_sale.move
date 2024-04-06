@@ -30,6 +30,8 @@ module movegpt::claim_sale {
     const ENOT_EALREADY_REFUNDED: u64 = 6;
     /// Already claimed
     const ENOT_EALREADY_CLAIMED: u64 = 7;
+    /// ENOT balance to withdraw
+    const ENOT_WITDRAW_BALANCE: u64 = 8;
 
     const INIT_PRIVATE_ROUND_AMOUNT: u64 = 4000000000000000;
     // 40m * 1e8
@@ -79,10 +81,18 @@ module movegpt::claim_sale {
     }
 
     #[event]
+    struct AddClaimerEvent has drop, store {
+        claimers: vector<address>,
+        amount: vector<u64>,
+        time_stamp: u64,
+    }
+
+    #[event]
     struct RefundEvent has drop, store {
         user: address,
         amount: u64,
-        round: u8, // 0: priavte, 1: ido
+        round: u8,
+        // 0: priavte, 1: ido
         time_stamp: u64,
     }
 
@@ -244,42 +254,28 @@ module movegpt::claim_sale {
         };
     }
 
-    public entry fun refund_entry(claimer: &signer, round_id: u8) acquires Sales {
+    public entry fun refund_ido_entry(claimer: &signer, round_id: u8) acquires Sales {
         let claimer_address = signer::address_of(claimer);
         let sales_config = get_sales_config();
-        if (round_id == 0) {
-            let round_config = &mut sales_config.private_round;
-            let claimer_info = get_claimers_info(claimer_address, round_config);
-            assert!(claimer_info.claimed == 0, ENOT_EALREADY_CLAIMED);
-            claimer_info.is_refund = true;
-            round_config.total_bought = round_config.total_bought - claimer_info.allocate;
-            event::emit(RefundEvent {
-                user: signer::address_of(claimer),
-                amount: claimer_info.allocate,
-                round: round_id,
-                time_stamp: timestamp::now_seconds(),
-            });
-        };
-        if (round_id == 1) {
-            let round_config = &mut sales_config.ido_round;
-            let claimer_info = get_claimers_info(claimer_address, round_config);
-            assert!(claimer_info.claimed == 0, ENOT_EALREADY_CLAIMED);
-            claimer_info.is_refund = true;
-            round_config.total_bought = round_config.total_bought - claimer_info.allocate;
-            event::emit(RefundEvent {
-                user: signer::address_of(claimer),
-                amount: claimer_info.allocate,
-                round: round_id,
-                time_stamp: timestamp::now_seconds(),
-            });
-        }
+        let round_config = &mut sales_config.ido_round;
+        let claimer_info = get_claimers_info(claimer_address, round_config);
+        assert!(claimer_info.claimed == 0, ENOT_EALREADY_CLAIMED);
+        assert!(!claimer_info.is_refund, ENOT_EALREADY_REFUNDED);
+        claimer_info.is_refund = true;
+        round_config.total_bought = round_config.total_bought - claimer_info.allocate;
+        event::emit(RefundEvent {
+            user: signer::address_of(claimer),
+            amount: claimer_info.allocate,
+            round: round_id,
+            time_stamp: timestamp::now_seconds(),
+        });
     }
 
     public entry fun claim_private_entry(claimer: &signer) acquires Sales {
         claim_private(claimer);
     }
 
-    public entry fun claim_entry(claimer: &signer) acquires Sales {
+    public entry fun claim_ido_entry(claimer: &signer) acquires Sales {
         claim_ido(claimer);
     }
 
@@ -300,7 +296,8 @@ module movegpt::claim_sale {
         let current_time = timestamp::now_seconds();
         assert!(current_time > round_config.start_time, ENOT_CLAIM_TIME);
         let claimer_info = get_claimers_info(claimer_address, round_config);
-        assert!(claimer_info.is_refund == false, ENOT_EALREADY_REFUNDED);
+        assert!(!claimer_info.is_refund, ENOT_EALREADY_REFUNDED);
+        assert!(claimer_info.claimed > 0, ENOT_EALREADY_CLAIMED);
         let tge_amount = math64::mul_div(claimer_info.allocate, round_config.tge, TGE_DECIMALS);
         let lock_amount = math64::mul_div(
             claimer_info.allocate - tge_amount,
@@ -353,10 +350,12 @@ module movegpt::claim_sale {
         if (is_ido) {
             total_amount_avaiable = &mut (INIT_IDO_ROUND_AMOUNT - round_config.total_bought);
         };
+        assert!(*total_amount_avaiable > round_config.withdrawed, ENOT_WITDRAW_BALANCE);
         aptos_account::deposit_coins<MovegptCoin>(
             operator,
             coin::extract(&mut round_config.balances, *total_amount_avaiable)
         );
+        round_config.withdrawed =*total_amount_avaiable;
         event::emit(WithdrawEvent {
             operator,
             amount: *total_amount_avaiable,
@@ -405,6 +404,11 @@ module movegpt::claim_sale {
                     is_refund: false,
                 }
             );
+        });
+        event::emit(AddClaimerEvent {
+            claimers: recipients,
+            amount: allocates,
+            time_stamp: timestamp::now_seconds(),
         });
     }
 
