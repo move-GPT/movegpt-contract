@@ -297,7 +297,7 @@ module movegpt::claim_sale {
         assert!(current_time > round_config.start_time, ENOT_CLAIM_TIME);
         let claimer_info = get_claimers_info(claimer_address, round_config);
         assert!(!claimer_info.is_refund, ENOT_EALREADY_REFUNDED);
-        assert!(claimer_info.claimed > 0, ENOT_EALREADY_CLAIMED);
+        assert!(claimer_info.claimed == 0, ENOT_EALREADY_CLAIMED);
         let tge_amount = math64::mul_div(claimer_info.allocate, round_config.tge, TGE_DECIMALS);
         let lock_amount = math64::mul_div(
             claimer_info.allocate - tge_amount,
