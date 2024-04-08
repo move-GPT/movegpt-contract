@@ -26,7 +26,7 @@ module movegpt::claim_sale {
     const ENOT_CLAIM_TIME: u64 = 3;
     /// Not running now
     const ENOT_RUNNING: u64 = 4;
-    /// Not vali input
+    /// ENOT invalidate input
     const ENOT_VALI_INPUT: u64 = 5;
     /// Already refunded
     const ENOT_EALREADY_REFUNDED: u64 = 6;

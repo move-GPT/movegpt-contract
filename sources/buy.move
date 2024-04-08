@@ -19,7 +19,7 @@ module movegpt::buy {
     const ENOT_CAMPAIGN_NOT_ACTIVE: u64 = 2;
     /// Not order already exist
     const ENOT_ORDER_ALREADY_EXIT: u64 = 3;
-    /// Not vali signature
+    /// ENOT invalidate signature
     const ENOT_INVALI_SIGNATURE: u64 = 4;
     /// Not accepted token
     const ENOT_ACCEPTED_TOKEN: u64 = 5;
