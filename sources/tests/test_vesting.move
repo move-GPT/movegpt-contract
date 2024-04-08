@@ -1,7 +1,5 @@
 module movegpt::test_vesting {
     #[test_only]
-    use std::signer;
-    #[test_only]
     use std::vector;
     #[test_only]
     use aptos_framework::timestamp;
@@ -36,7 +34,6 @@ module movegpt::test_vesting {
 
     #[test(
         deployer = @0xcafe,
-        operator = @0xcafe1,
         marketing = @marketing,
         staking_rewards = @staking_rewards,
         dev = @dev,
@@ -45,40 +42,39 @@ module movegpt::test_vesting {
     )]
     public entry fun test_e2e(
         deployer: &signer,
-        operator: &signer,
         marketing: &signer,
         staking_rewards: &signer,
         dev: &signer,
         team: &signer,
         initial_liquidity: &signer
     ) {
-        test_helper::setup(deployer, signer::address_of(operator));
+        test_helper::setup(deployer);
         assert!(
             INIT_MARKETING_AMOUNT + INIT_AIRDROP_AMOUNT + INIT_STAKING_REWARD_AMOUNT + INIT_DEV_AMOUNT + INIT_TEAM_AMOUNT + INIT_INITIAL_LIQUIDITY_AMOUNT + INIT_IDO_ROUND_AMOUNT + INIT_PRIVATE_ROUND_AMOUNT == INIT_MINT_AMOUNT,
             1
         );
         vesting::set_vesting_config_start_time_entry(
-            operator,
+            deployer,
             0,
             timestamp::now_seconds() - 1,
         );
         vesting::set_vesting_config_start_time_entry(
-            operator,
+            deployer,
             1,
             timestamp::now_seconds() - 1,
         );
         vesting::set_vesting_config_start_time_entry(
-            operator,
+            deployer,
             2,
             timestamp::now_seconds() - 1,
         );
         vesting::set_vesting_config_start_time_entry(
-            operator,
+            deployer,
             3,
             timestamp::now_seconds() - 1,
         );
         vesting::set_vesting_config_start_time_entry(
-            operator,
+            deployer,
             4,
             timestamp::now_seconds() - 1,
         );

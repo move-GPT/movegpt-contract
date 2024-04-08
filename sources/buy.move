@@ -7,9 +7,11 @@ module movegpt::buy {
     use aptos_std::smart_table::SmartTable;
     use aptos_std::string_utils;
     use aptos_std::type_info;
+    use aptos_framework::account;
     use aptos_framework::coin;
     use aptos_framework::event;
     use aptos_framework::timestamp;
+    use movegpt::package_manager;
 
     /// Not authorized to perform this action
     const ENOT_AUTHORIZED: u64 = 1;
@@ -22,6 +24,9 @@ module movegpt::buy {
     /// Not accepted token
     const ENOT_ACCEPTED_TOKEN: u64 = 5;
 
+    const BUY: vector<u8> = b"BUY";
+
+
     struct BuyOrder has key, store, copy, drop {
         amount: u64,
         payment_token: String,
@@ -30,7 +35,6 @@ module movegpt::buy {
     }
 
     struct BuyOrders has key, store {
-        operator: address,
         treasury: address,
         admin_pubkey: vector<u8>,
         orders: SmartTable<u256, BuyOrder>,
@@ -50,10 +54,14 @@ module movegpt::buy {
     }
 
 
-    public entry fun initialize(admin: &signer, operator: address, treasury: address, admin_pubKey: vector<u8>) {
-        assert!(signer::address_of(admin) == @deployer, ENOT_AUTHORIZED);
-        move_to(admin, BuyOrders {
-            operator,
+    public entry fun initialize(admin: &signer,treasury: address, admin_pubKey: vector<u8>) {
+        assert!(signer::address_of(admin) == package_manager::operator(), ENOT_AUTHORIZED);
+        if (is_initialized()) {
+            return
+        };
+        let (buy_signer, _) =
+            account::create_resource_account(&package_manager::get_signer(), BUY);
+        move_to(&buy_signer, BuyOrders {
             treasury,
             admin_pubkey: admin_pubKey,
             orders: smart_table::new(),
@@ -61,6 +69,17 @@ module movegpt::buy {
             usedOrders: smart_table::new(),
             accepted_token: smart_table::new(),
         });
+        package_manager::add_address(string::utf8(BUY), signer::address_of(&buy_signer));
+    }
+
+    #[view]
+    public fun is_initialized(): bool {
+        package_manager::address_exists(string::utf8(BUY))
+    }
+
+    #[view]
+    public fun buy_address(): address {
+        package_manager::get_address(string::utf8(BUY))
     }
 
     public entry fun buy_entry<CoinType>(buyer: &signer, amount: u64, order_id: u256,campaign_id: u256, signature: vector<u8>, nonce: u8) acquires BuyOrders {
@@ -77,21 +96,14 @@ module movegpt::buy {
 
     public entry fun set_treasury_entry(operator: &signer, treasury: address) acquires BuyOrders {
         let buy_orders = get_buy_orders_mut();
-        assert!(signer::address_of(operator) == buy_orders.operator, ENOT_AUTHORIZED);
+        assert!(signer::address_of(operator) == package_manager::operator(), ENOT_AUTHORIZED);
         buy_orders.treasury = treasury;
-    }
-
-    public entry fun set_operator_entry(deployer: &signer, new_operator: address) acquires BuyOrders {
-        assert!(
-            signer::address_of(deployer) == @deployer, ENOT_AUTHORIZED
-        );
-        get_buy_orders_mut().operator = new_operator;
     }
 
     public entry fun set_admin_pubkey_entry(operator: &signer, new_admin_pub: vector<u8>) acquires BuyOrders {
         let buy_orders = get_buy_orders_mut();
         assert!(
-            signer::address_of(operator) == buy_orders.operator, ENOT_AUTHORIZED
+            signer::address_of(operator) == package_manager::operator(), ENOT_AUTHORIZED
         );
         buy_orders.admin_pubkey = new_admin_pub;
     }
@@ -99,7 +111,7 @@ module movegpt::buy {
     public entry fun add_accepted_token(operator: &signer, token: String) acquires BuyOrders {
         let buy_orders = get_buy_orders_mut();
         assert!(
-            signer::address_of(operator) == buy_orders.operator, ENOT_AUTHORIZED
+            signer::address_of(operator) == package_manager::operator(), ENOT_AUTHORIZED
         );
         smart_table::upsert(
             &mut buy_orders.accepted_token,
@@ -111,7 +123,7 @@ module movegpt::buy {
     public entry fun deactive_accepted_token(operator: &signer, token: String) acquires BuyOrders {
         let buy_orders = get_buy_orders_mut();
         assert!(
-            signer::address_of(operator) == buy_orders.operator, ENOT_AUTHORIZED
+            signer::address_of(operator) == package_manager::operator(), ENOT_AUTHORIZED
         );
         smart_table::upsert(
             &mut buy_orders.accepted_token,
@@ -165,7 +177,7 @@ module movegpt::buy {
 
     fun setCampaign(operator: &signer, campaign_id: u256, is_active: bool) acquires BuyOrders {
         let buy_orders = get_buy_orders_mut();
-        assert!(signer::address_of(operator) == buy_orders.operator, ENOT_AUTHORIZED);
+        assert!(signer::address_of(operator) == package_manager::operator(), ENOT_AUTHORIZED);
         smart_table::upsert(
             &mut buy_orders.campaigns,
             campaign_id,
@@ -186,7 +198,7 @@ module movegpt::buy {
     }
 
     inline fun get_buy_orders_mut(): &mut BuyOrders acquires BuyOrders  {
-        borrow_global_mut<BuyOrders>(@deployer)
+        borrow_global_mut<BuyOrders>(buy_address())
     }
 
 }

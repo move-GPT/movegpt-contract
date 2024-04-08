@@ -119,7 +119,10 @@ module movegpt::voting_escrow {
     }
 
     public entry fun initialize(admin: &signer) {
-        assert!(signer::address_of(admin) == @deployer, ENOT_AUTHORIZED);
+        assert!(signer::address_of(admin) == package_manager::operator(), ENOT_AUTHORIZED);
+        if (is_initialized()) {
+            return
+        };
         create_vemgpt_collection();
     }
 
@@ -132,13 +135,17 @@ module movegpt::voting_escrow {
             option::none<Royalty>(),
             string::utf8(MOVEGPT_URI),
         );
-        let collection_signer = &object::generate_signer(ve_movegpt);
-        package_manager::add_address(string::utf8(COLLECTION_NAME), signer::address_of(collection_signer));
         let ve_token_signer = &object::generate_signer(ve_movegpt);
         move_to(ve_token_signer, VeMoveGptTokenRefs {
             burn_ref: token::generate_burn_ref(ve_movegpt),
             transfer_ref: object::generate_transfer_ref(ve_movegpt),
         });
+        package_manager::add_address(string::utf8(COLLECTION_NAME), signer::address_of(ve_token_signer));
+    }
+
+    #[view]
+    public fun is_initialized(): bool {
+        package_manager::address_exists(string::utf8(COLLECTION_NAME))
     }
 
     /// create a new VeMGPT NFT
@@ -320,10 +327,6 @@ module movegpt::voting_escrow {
 
     inline fun unchecked_mut_ve_token(ve_token: &Object<VeMoveGptToken>): &mut VeMoveGptToken acquires VeMoveGptToken {
         borrow_global_mut<VeMoveGptToken>(object::object_address(ve_token))
-    }
-
-    inline fun get_voting_escrow(): &mut VotingEscrow acquires VotingEscrow {
-        borrow_global_mut<VotingEscrow>(@movegpt)
     }
 
     #[test_only]

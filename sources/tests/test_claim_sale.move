@@ -17,8 +17,8 @@ module movegpt::test_claim_sale {
     use movegpt::voting_escrow;
 
     #[test(deployer = @0xcafe,recipient_ido = @0x123, recipient_ido2 = @0x124, recipient_private = @0xdead, recipient_private2 = @0xdeae, operator = @0xcafe)]
-    fun test_e2e(deployer: &signer, recipient_ido: &signer, recipient_ido2: &signer, recipient_private: &signer, recipient_private2: &signer, operator: &signer) {
-        test_helper::setup(deployer, signer::address_of(operator));
+    fun test_e2e(recipient_ido: &signer, recipient_ido2: &signer, recipient_private: &signer, recipient_private2: &signer, operator: &signer, deployer: &signer) {
+        test_helper::setup(deployer);
         let recipient_ido_address = signer::address_of(recipient_ido);
         let recipient_ido2_address = signer::address_of(recipient_ido2);
         let ido_amount = vector[100, 200];

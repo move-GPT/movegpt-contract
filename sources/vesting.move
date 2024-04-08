@@ -1,7 +1,9 @@
 module movegpt::vesting {
     use std::signer;
+    use std::string;
     use std::vector;
     use aptos_std::math64;
+    use aptos_framework::account;
     use aptos_framework::aptos_account;
     use aptos_framework::coin;
     use aptos_framework::coin::{Coin};
@@ -40,7 +42,7 @@ module movegpt::vesting {
     const INIT_AIRDROP_AMOUNT: u64 = 15000000000000000;
     // 150m * 1e8
     const INIT_MARKETING_AMOUNT: u64 = 15000000000000000; // 150m * 1e8
-
+    const VESTING: vector<u8> = b"VESTING";
     const DECIMALS: u64 = 100;
     const MONTHS_IN_SECONDS: u64 = 30 * 86400;
     // 1 quarter 13 epch
@@ -58,7 +60,6 @@ module movegpt::vesting {
     }
 
     struct Vesting has key, store {
-        operator: address,
         team: VestingConfig,
         dev: VestingConfig,
         staking_reward: VestingConfig,
@@ -73,19 +74,23 @@ module movegpt::vesting {
         time_stamp: u64,
     }
 
-    public entry fun initialize(admin: &signer, operator: address) {
-        assert!(signer::address_of(admin) == @deployer, ENOT_AUTHORIZED);
-        init_mint(operator);
+    public entry fun initialize(admin: &signer) {
+        assert!(signer::address_of(admin) == package_manager::operator(), ENOT_AUTHORIZED);
+        if (is_initialized()) {
+            return
+        };
+        init_mint();
     }
 
-    inline fun init_mint(operator: address) {
+    inline fun init_mint() {
         let team_coin = movegpt_token::mint(INIT_TEAM_AMOUNT);
         let dev_coin = movegpt_token::mint(INIT_DEV_AMOUNT);
         let staking_reward_coin = movegpt_token::mint(INIT_STAKING_REWARD_AMOUNT);
         let marketing_coin = movegpt_token::mint(INIT_MARKETING_AMOUNT);
         let initial_liquidity_coin = movegpt_token::mint(INIT_INITIAL_LIQUIDITY_AMOUNT);
-        move_to(&package_manager::get_signer(), Vesting {
-            operator,
+        let (vesting_signer, _) =
+            account::create_resource_account(&package_manager::get_signer(), VESTING);
+        move_to(&vesting_signer, Vesting {
             team: VestingConfig {
                 coin_store: team_coin,
                 claimed: 0,
@@ -132,11 +137,17 @@ module movegpt::vesting {
                 last_vested_period: 0
             }
         });
+        package_manager::add_address(string::utf8(VESTING), signer::address_of(&vesting_signer));
     }
 
-    public entry fun set_new_operator(admin: &signer, new_operator: address) acquires Vesting {
-        assert!(signer::address_of(admin) == @deployer, ENOT_AUTHORIZED);
-        get_vesting().operator = new_operator;
+    #[view]
+    public fun is_initialized(): bool {
+        package_manager::address_exists(string::utf8(VESTING))
+    }
+
+    #[view]
+    public fun vesting_address(): address {
+        package_manager::get_address(string::utf8(VESTING))
     }
 
     public entry fun set_vesting_config_start_time_entry(
@@ -145,7 +156,7 @@ module movegpt::vesting {
         new_start_time: u64,
     ) acquires Vesting {
         let vesting = get_vesting();
-        assert!(signer::address_of(admin) == vesting.operator, ENOT_AUTHORIZED);
+        assert!(signer::address_of(admin) == package_manager::operator(), ENOT_AUTHORIZED);
         let vesting_config = &mut vesting.team;
         if (vesting_config_id == 1) {
             vesting_config = &mut vesting.dev;
@@ -168,7 +179,7 @@ module movegpt::vesting {
         new_duration_time: u64,
     ) acquires Vesting {
         let vesting = get_vesting();
-        assert!(signer::address_of(admin) == vesting.operator, ENOT_AUTHORIZED);
+        assert!(signer::address_of(admin) == package_manager::operator(), ENOT_AUTHORIZED);
         if (vesting_config_id == 0) {
             let vesting_config = &mut vesting.team;
             vesting_config.vesting_duration = new_duration_time;
@@ -197,7 +208,7 @@ module movegpt::vesting {
         new_periods_time: u64,
     ) acquires Vesting {
         let vesting = get_vesting();
-        assert!(signer::address_of(admin) == vesting.operator, ENOT_AUTHORIZED);
+        assert!(signer::address_of(admin) == package_manager::operator(), ENOT_AUTHORIZED);
         if (vesting_config_id == 0) {
             let vesting_config = &mut vesting.team;
             vesting_config.vesting_periods = new_periods_time;
@@ -226,7 +237,7 @@ module movegpt::vesting {
         tge: u64
     ) acquires Vesting {
         let vesting = get_vesting();
-        assert!(signer::address_of(admin) == vesting.operator, ENOT_AUTHORIZED);
+        assert!(signer::address_of(admin) == package_manager::operator(), ENOT_AUTHORIZED);
         if (vesting_config_id == 0) {
             let vesting_config = &mut vesting.team;
             vesting_config.tge = tge;
@@ -347,7 +358,7 @@ module movegpt::vesting {
     }
 
     inline fun get_vesting(): &mut Vesting {
-        borrow_global_mut<Vesting>(signer::address_of(&package_manager::get_signer()))
+        borrow_global_mut<Vesting>(vesting_address())
     }
 
     #[test_only]

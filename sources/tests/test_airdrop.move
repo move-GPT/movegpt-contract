@@ -9,12 +9,12 @@ module movegpt::test_airdrop {
     use movegpt::test_helper;
     const YEAR: u64 = 52;
 
-    #[test(deployer=@0xcafe,buyer=@0xcafe,buyer2=@0xcafe2, oprater=@0xcafe)]
-    public entry fun test_e2e(deployer: &signer, oprater: &signer, buyer: &signer, buyer2: &signer) {
-        test_helper::setup(deployer, signer::address_of(oprater));
+    #[test(deployer=@0xcafe,buyer=@0xcafe,buyer2=@0xcafe2)]
+    public entry fun test_e2e(deployer: &signer, buyer: &signer, buyer2: &signer) {
+        test_helper::setup(deployer);
         let recipients = vector[signer::address_of(buyer), signer::address_of(buyer2)];
         let amounts = vector[100, 200];
-        let nfts = airdrop::airdrop(oprater, recipients, amounts);
+        let nfts = airdrop::airdrop(deployer, recipients, amounts);
         assert!(vector::length(&nfts) == 2, 1);
         // fast forward 1 year
         epoch::fast_forward(YEAR);

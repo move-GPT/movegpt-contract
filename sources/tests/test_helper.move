@@ -17,8 +17,9 @@ module movegpt::test_helper {
     const MIN_APT_STAKE: u64 = 1000;
     const INITIAL_TIME: u64 = 1691370815;
     const ONE_APT: u64 = 100000000;
+    const ADMIN_PUBKEY: vector<u8> = vector[150,188,131,91,119,99,191,208,28,132,160,207,131,190,133,249,5,78,37,156,113,67,65,28,225,252,177,237,131,239,132,217];
 
-    public fun setup(deployer: &signer, operator: address) {
+    public fun setup(admin: &signer) {
         timestamp::set_time_has_started_for_testing(&account::create_signer_for_test(@0x1));
         timestamp::fast_forward_seconds(INITIAL_TIME);
         let framework_signer = &account::create_signer_for_test(@0x1);
@@ -34,11 +35,11 @@ module movegpt::test_helper {
             10000,
         );
         package_manager::initialize_for_test(deployer());
-        movegpt_token::initialize(operator);
-        voting_escrow::initialize(deployer);
-        airdrop::initialize(deployer, operator);
-        vesting::initialize(deployer, operator);
-        claim_sale::initialize(deployer, operator);
+        movegpt_token::initialize(admin);
+        voting_escrow::initialize(admin);
+        airdrop::initialize(admin);
+        vesting::initialize(admin);
+        claim_sale::initialize(admin);
     }
 
     public fun mint_apt(apt_amount: u64): Coin<AptosCoin> {

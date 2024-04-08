@@ -1,9 +1,11 @@
 module movegpt::claim_sale {
     use std::signer;
+    use std::string;
     use std::vector;
     use aptos_std::math64;
     use aptos_std::smart_table;
     use aptos_std::smart_table::SmartTable;
+    use aptos_framework::account;
     use aptos_framework::coin;
     use aptos_framework::coin::Coin;
     use aptos_framework::timestamp;
@@ -41,6 +43,9 @@ module movegpt::claim_sale {
     // 1 quarter 13 epch
     const QUARTER_IN_EPOCH: u64 = 13;
 
+    const CLAIM_SALE: vector<u8> = b"CLAIM_SALE";
+
+
     struct Claimer has key, copy, drop, store {
         allocate: u64,
         claimed: u64,
@@ -60,7 +65,6 @@ module movegpt::claim_sale {
     }
 
     struct Sales has key, store {
-        operator: address,
         paused: bool,
         private_round: ConfigRoud,
         ido_round: ConfigRoud,
@@ -126,16 +130,20 @@ module movegpt::claim_sale {
         *get_claimers_info(claimer, &mut get_sales_config().private_round)
     }
 
-    public entry fun initialize(admin: &signer, operator: address) {
-        assert!(signer::address_of(admin) == @deployer, ENOT_AUTHORIZED);
-        init_mint(operator);
+    public entry fun initialize(admin: &signer) {
+        assert!(signer::address_of(admin) == package_manager::operator(), ENOT_AUTHORIZED);
+        if (is_initialized()) {
+            return
+        };
+        init_mint();
     }
 
-    inline fun init_mint(operator: address) {
+    inline fun init_mint() {
         let private_coin = movegpt_token::mint(INIT_PRIVATE_ROUND_AMOUNT);
         let ido_coin = movegpt_token::mint(INIT_IDO_ROUND_AMOUNT);
-        move_to(&package_manager::get_signer(), Sales {
-            operator,
+        let (claim_sale_signer, _) =
+            account::create_resource_account(&package_manager::get_signer(), CLAIM_SALE);
+        move_to(&claim_sale_signer, Sales {
             paused: false,
             private_round: ConfigRoud {
                 claimers: smart_table::new(),
@@ -160,29 +168,33 @@ module movegpt::claim_sale {
                 withdrawed: 0,
             }
         });
+        package_manager::add_address(string::utf8(CLAIM_SALE), signer::address_of(&claim_sale_signer));
+    }
+
+    #[view]
+    public fun is_initialized(): bool {
+        package_manager::address_exists(string::utf8(CLAIM_SALE))
+    }
+    #[view]
+    public fun claim_sale(): address {
+        package_manager::get_address(string::utf8(CLAIM_SALE))
     }
 
     public entry fun set_salse_status(operator: &signer, is_paused: bool) acquires Sales {
         let sales_config = get_sales_config();
-        assert!(signer::address_of(operator) == sales_config.operator, ENOT_AUTHORIZED);
+        assert!(signer::address_of(operator) == package_manager::operator(), ENOT_AUTHORIZED);
         sales_config.paused = is_paused;
-    }
-
-    public entry fun set_operator(operator: &signer, new_operator: address) acquires Sales {
-        let sales_config = get_sales_config();
-        assert!(signer::address_of(operator) == @deployer, ENOT_AUTHORIZED);
-        sales_config.operator = new_operator;
     }
 
     public entry fun set_ido_start_time(operator: &signer, new_start_time: u64) acquires Sales {
         let sales_config = get_sales_config();
-        assert!(signer::address_of(operator) == sales_config.operator, ENOT_AUTHORIZED);
+        assert!(signer::address_of(operator) == package_manager::operator(), ENOT_AUTHORIZED);
         sales_config.ido_round.start_time = new_start_time;
     }
 
     public entry fun set_private_start_time(operator: &signer, new_start_time: u64) acquires Sales {
         let sales_config = get_sales_config();
-        assert!(signer::address_of(operator) == sales_config.operator, ENOT_AUTHORIZED);
+        assert!(signer::address_of(operator) == package_manager::operator(), ENOT_AUTHORIZED);
         sales_config.private_round.start_time = new_start_time;
     }
 
@@ -192,7 +204,7 @@ module movegpt::claim_sale {
         new_total_bought: u64,
     ) acquires Sales {
         let vesting = get_sales_config();
-        assert!(signer::address_of(admin) == vesting.operator, ENOT_AUTHORIZED);
+        assert!(signer::address_of(admin) == package_manager::operator(), ENOT_AUTHORIZED);
         if (round_id == 0) {
             let vesting_config = &mut vesting.private_round;
             vesting_config.total_bought = new_total_bought;
@@ -209,7 +221,7 @@ module movegpt::claim_sale {
         new_lock_duration: u64,
     ) acquires Sales {
         let vesting = get_sales_config();
-        assert!(signer::address_of(admin) == vesting.operator, ENOT_AUTHORIZED);
+        assert!(signer::address_of(admin) == package_manager::operator(), ENOT_AUTHORIZED);
         if (round_id == 0) {
             let vesting_config = &mut vesting.private_round;
             vesting_config.lock_duration = new_lock_duration;
@@ -226,7 +238,7 @@ module movegpt::claim_sale {
         new_periods_time: u64,
     ) acquires Sales {
         let vesting = get_sales_config();
-        assert!(signer::address_of(admin) == vesting.operator, ENOT_AUTHORIZED);
+        assert!(signer::address_of(admin) == package_manager::operator(), ENOT_AUTHORIZED);
         if (round_id == 0) {
             let vesting_config = &mut vesting.private_round;
             vesting_config.periods = new_periods_time;
@@ -243,7 +255,7 @@ module movegpt::claim_sale {
         new_periods_time: u64,
     ) acquires Sales {
         let vesting = get_sales_config();
-        assert!(signer::address_of(admin) == vesting.operator, ENOT_AUTHORIZED);
+        assert!(signer::address_of(admin) == package_manager::operator(), ENOT_AUTHORIZED);
         if (round_id == 0) {
             let vesting_config = &mut vesting.private_round;
             vesting_config.tge = new_periods_time;
@@ -275,7 +287,7 @@ module movegpt::claim_sale {
         claim_private(claimer);
     }
 
-    public entry fun claim_ido_entry(claimer: &signer) acquires Sales {
+    public entry fun claim_entry(claimer: &signer) acquires Sales {
         claim_ido(claimer);
     }
 
@@ -338,7 +350,7 @@ module movegpt::claim_sale {
     public fun withdraw(operator: &signer) acquires Sales {
         let sales_config = get_sales_config();
         let operator_address = signer::address_of(operator);
-        assert!(operator_address == sales_config.operator, ENOT_AUTHORIZED);
+        assert!(operator_address == package_manager::operator(), ENOT_AUTHORIZED);
         withdraw_round(operator_address, &mut sales_config.ido_round, true);
         withdraw_round(operator_address, &mut sales_config.private_round, false);
     }
@@ -371,7 +383,7 @@ module movegpt::claim_sale {
     ) acquires Sales {
         let sales_config = get_sales_config();
         assert!(!sales_config.paused, ENOT_RUNNING);
-        assert!(signer::address_of(operator) == sales_config.operator, ENOT_AUTHORIZED);
+        assert!(signer::address_of(operator) == package_manager::operator(), ENOT_AUTHORIZED);
         assert!(vector::length(&recipients) == vector::length(&allocates), ENOT_VALI_INPUT);
         add_round_claimers(&mut sales_config.private_round, recipients, allocates);
     }
@@ -383,7 +395,7 @@ module movegpt::claim_sale {
     ) acquires Sales {
         let sales_config = get_sales_config();
         assert!(!sales_config.paused, ENOT_RUNNING);
-        assert!(signer::address_of(operator) == sales_config.operator, ENOT_AUTHORIZED);
+        assert!(signer::address_of(operator) == package_manager::operator(), ENOT_AUTHORIZED);
         assert!(vector::length(&recipients) == vector::length(&allocates), ENOT_VALI_INPUT);
         add_round_claimers(&mut sales_config.ido_round, recipients, allocates);
     }
@@ -417,7 +429,7 @@ module movegpt::claim_sale {
     }
 
     inline fun get_sales_config(): &mut Sales {
-        borrow_global_mut<Sales>(signer::address_of(&package_manager::get_signer()))
+        borrow_global_mut<Sales>(claim_sale())
     }
 
     #[test_only]

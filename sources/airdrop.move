@@ -1,6 +1,8 @@
 module movegpt::airdrop {
     use std::signer;
+    use std::string;
     use std::vector;
+    use aptos_framework::account;
     use aptos_framework::coin;
     use aptos_framework::coin::{Coin};
     use aptos_framework::event;
@@ -22,7 +24,6 @@ module movegpt::airdrop {
     const YEAR: u64 = 52; // 1 month 30days
 
     struct Airdrop has key, store {
-        operator: address,
         store: Coin<MovegptCoin>,
     }
 
@@ -35,17 +36,33 @@ module movegpt::airdrop {
 
     const INIT_AIRDROP_AMOUNT: u64 = 15000000000000000; // 150m * 1e8
 
-    public entry fun initialize(admin: &signer, operator: address) {
-        assert!(signer::address_of(admin) == @deployer, ENOT_AUTHORIZED);
-        init_mint(operator);
+    const AIRDROP: vector<u8> = b"AIRDROP";
+
+    public entry fun initialize(admin: &signer) {
+        assert!(signer::address_of(admin) == package_manager::operator(), ENOT_AUTHORIZED);
+        if (is_initialized()) {
+            return
+        };
+        init_mint();
     }
 
-    inline fun init_mint(operator: address) {
+    inline fun init_mint() {
         let airdrop_coin = movegpt_token::mint(INIT_AIRDROP_AMOUNT);
-        move_to(&package_manager::get_signer(), Airdrop {
-            operator,
+        let (airdrop_signer, _) = account::create_resource_account(&package_manager::get_signer(), AIRDROP);
+        move_to(&airdrop_signer, Airdrop {
             store: airdrop_coin,
         });
+        package_manager::add_address(string::utf8(AIRDROP), signer::address_of(&airdrop_signer));
+    }
+
+    #[view]
+    public fun is_initialized(): bool {
+        package_manager::address_exists(string::utf8(AIRDROP))
+    }
+
+    #[view]
+    public fun airdrop_address(): address {
+        package_manager::get_address(string::utf8(AIRDROP))
     }
 
     public entry fun airdrop_entry(
@@ -56,14 +73,14 @@ module movegpt::airdrop {
         airdrop(operator, recipients, allocates);
     }
 
-    public fun airdrop (
+    public fun airdrop(
         operator: &signer,
         recipients: vector<address>,
         allocates: vector<u64>
     ): vector<Object<VeMoveGptToken>> acquires Airdrop {
         let airdrop = get_airdrop_config();
         let operator_address = signer::address_of(operator);
-        assert!(operator_address == airdrop.operator, ENOT_AUTHORIZED);
+        assert!(operator_address == package_manager::operator(), ENOT_AUTHORIZED);
         assert!(vector::length(&recipients) == vector::length(&allocates), EINVALID_DATA);
         let nfts = vector::empty<Object<VeMoveGptToken>>();
         vector::zip(recipients, allocates, |recipient, allocate|{
@@ -80,6 +97,6 @@ module movegpt::airdrop {
     }
 
     inline fun get_airdrop_config(): &mut Airdrop {
-        borrow_global_mut<Airdrop>(signer::address_of(&package_manager::get_signer()))
+        borrow_global_mut<Airdrop>(airdrop_address())
     }
 }

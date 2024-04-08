@@ -16,9 +16,9 @@ module movegpt::test_voting_escrow {
     #[test_only]
     use movegpt::movegpt_token::MovegptCoin;
 
-    #[test(deployer = @0xcafe, user = @0xcafe1)]
-    public entry fun test_e2e(deployer: &signer, user: &signer) {
-        test_helper::setup(deployer, signer::address_of(user));
+    #[test(user = @0xcafe1, deployer = @0xcafe)]
+    public entry fun test_e2e(user: &signer, deployer: &signer) {
+        test_helper::setup(deployer);
         let lock_amount = 1000;
         let mgpt_coin = movegpt_token::mint(lock_amount);
         let nft = voting_escrow::create_lock(signer::address_of(user), mgpt_coin, 2);

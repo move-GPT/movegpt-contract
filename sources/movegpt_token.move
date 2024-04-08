@@ -25,7 +25,6 @@ module movegpt::movegpt_token {
     struct MovegptCoin has key{}
 
     struct MoveGPTManagement has key {
-        operator: address,
         burn_cap: BurnCapability<MovegptCoin>,
         freeze_cap: FreezeCapability<MovegptCoin>,
         mint_cap: MintCapability<MovegptCoin>,
@@ -43,10 +42,11 @@ module movegpt::movegpt_token {
         amount: u64,
     }
 
-    public entry fun initialize(operator: address) {
-        inititalize_module(operator);
+    public entry fun initialize(admin: &signer) {
+        assert!(signer::address_of(admin) == package_manager::operator(), ENOT_AUTHORIZED);
+        inititalize_module();
     }
-    fun inititalize_module(operator: address) {
+    fun inititalize_module() {
         if (is_initialized()) {
             return
         };
@@ -59,7 +59,6 @@ module movegpt::movegpt_token {
             true, // monitor_supply
         );
         move_to(movegpt_signer, MoveGPTManagement {
-            operator,
             burn_cap,
             freeze_cap,
             mint_cap,
@@ -67,11 +66,6 @@ module movegpt::movegpt_token {
             burn_event: account::new_event_handle<BurnEvent>(movegpt_signer),
         });
         package_manager::add_address(string::utf8(TOKEN_NAME), signer::address_of(movegpt_signer));
-    }
-
-    public entry fun set_operator(admin: &signer, operator: address) acquires MoveGPTManagement {
-        assert!(signer::address_of(admin) == @deployer, ENOT_AUTHORIZED);
-        movegpt_management().operator = operator;
     }
 
     #[view]
@@ -120,7 +114,7 @@ module movegpt::movegpt_token {
     }
 
     public fun freeze_token(admin: &signer, account: address) acquires MoveGPTManagement {
-        assert!(signer::address_of(admin) == movegpt_management().operator, ENOT_AUTHORIZED);
+        assert!(signer::address_of(admin) == package_manager::operator(), ENOT_AUTHORIZED);
         coin::freeze_coin_store(account, &movegpt_management().freeze_cap)
     }
 
@@ -129,7 +123,7 @@ module movegpt::movegpt_token {
     }
 
     public fun unfreeze_token(admin: &signer, account: address) acquires MoveGPTManagement {
-        assert!(signer::address_of(admin) == movegpt_management().operator, ENOT_AUTHORIZED);
+        assert!(signer::address_of(admin) == package_manager::operator(), ENOT_AUTHORIZED);
         coin::unfreeze_coin_store(account, &movegpt_management().freeze_cap)
     }
 
