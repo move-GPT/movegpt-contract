@@ -327,7 +327,7 @@ module movegpt::claim_sale {
             if (i > total_nft) {
                 break
             };
-            let coin_lock = if (lock_amount == coin::value(&round_config.balances)) coin::extract_all(
+            let coin_lock = if (lock_amount >= coin::value(&round_config.balances)) coin::extract_all(
                 &mut round_config.balances
             ) else coin::extract(
                 &mut round_config.balances,
