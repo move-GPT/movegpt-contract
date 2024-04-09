@@ -22,9 +22,12 @@ module movegpt::voting_escrow {
     friend movegpt::vesting;
     friend movegpt::claim_sale;
 
-    const MIN_LOCKUP_EPOCHS: u64 = 2; // 2 weeks
-    const MAX_LOCKUP_EPOCHS: u64 = 120; // 2 years (52 weeks = 1 year)
-    const LOCKUP_EPOCHS_FOR_VOTINGPOWER: u64 = 104; // 2 year
+    const MIN_LOCKUP_EPOCHS: u64 = 2;
+    // 2 weeks
+    const MAX_LOCKUP_EPOCHS: u64 = 120;
+    // 2 years (52 weeks = 1 year)
+    const LOCKUP_EPOCHS_FOR_VOTINGPOWER: u64 = 104;
+    // 2 year
     const YEAR_LOCKUP_EPOCHS: u64 = 52; // 1 year
 
     /// ENOT AUTHORIZED
@@ -127,7 +130,7 @@ module movegpt::voting_escrow {
     }
 
     /// create a new VeMGPT Collection
-    inline fun create_vemgpt_collection(){
+    inline fun create_vemgpt_collection() {
         let ve_movegpt = &collection::create_unlimited_collection(
             &package_manager::get_signer(),
             string::utf8(COLLECTION_DESC),
@@ -149,18 +152,22 @@ module movegpt::voting_escrow {
     }
 
     /// create a new VeMGPT NFT
-    public(friend) fun create_lock(recipient: address, coin_lock: Coin<MovegptCoin>, end_epoch_duration: u64): Object<VeMoveGptToken> {
+    public(friend) fun create_lock(
+        recipient: address,
+        coin_lock: Coin<MovegptCoin>,
+        end_epoch_duration: u64
+    ): Object<VeMoveGptToken> {
         let coin_amount = coin::value(&coin_lock);
         assert!(coin_amount > 0, EINVALID_AMOUNT);
         validate_lockup_epochs(end_epoch_duration);
         let movegpt_signer = &package_manager::get_signer();
         let ve_mgpt_constructor = &token::create_from_account(
-        movegpt_signer,
-        string::utf8(COLLECTION_NAME),
-        string::utf8(COLLECTION_DESC),
-        string::utf8(COLLECTION_NAME),
-        option::none<Royalty>(),
-        string::utf8(MOVEGPT_URI),
+            movegpt_signer,
+            string::utf8(COLLECTION_NAME),
+            string::utf8(COLLECTION_DESC),
+            string::utf8(COLLECTION_NAME),
+            option::none<Royalty>(),
+            string::utf8(MOVEGPT_URI),
         );
         let extern_ref = object::generate_extend_ref(ve_mgpt_constructor);
         let ve_token_signer = &object::generate_signer(ve_mgpt_constructor);
@@ -183,7 +190,64 @@ module movegpt::voting_escrow {
         let base_uri = string::utf8(MOVEGPT_URI);
         string::append(&mut base_uri, string_utils::to_string(&object::object_address(&nft_object)));
         token::set_uri(&mutator_ref, base_uri);
-        event::emit(CreateLockEvent { owner: recipient, amount: coin_amount, lockup_end_epoch: epoch::now() + end_epoch_duration, ve_token: nft_object });
+        event::emit(
+            CreateLockEvent {
+                owner: recipient, amount: coin_amount, lockup_end_epoch: epoch::now(
+                ) + end_epoch_duration, ve_token: nft_object
+            }
+        );
+
+        nft_object
+    }
+
+    /// create a new VeMGPT NFT
+    public(friend) fun create_lock_with_start_lock_time(
+        recipient: address,
+        coin_lock: Coin<MovegptCoin>,
+        end_epoch_duration: u64,
+        start_time: u64
+    ): Object<VeMoveGptToken> {
+        let coin_amount = coin::value(&coin_lock);
+        assert!(coin_amount > 0, EINVALID_AMOUNT);
+        validate_lockup_epochs(end_epoch_duration);
+        let movegpt_signer = &package_manager::get_signer();
+        let ve_mgpt_constructor = &token::create_from_account(
+            movegpt_signer,
+            string::utf8(COLLECTION_NAME),
+            string::utf8(COLLECTION_DESC),
+            string::utf8(COLLECTION_NAME),
+            option::none<Royalty>(),
+            string::utf8(MOVEGPT_URI),
+        );
+        let extern_ref = object::generate_extend_ref(ve_mgpt_constructor);
+        let ve_token_signer = &object::generate_signer(ve_mgpt_constructor);
+        let token_data = VeMoveGptToken {
+            extend_ref: extern_ref,
+            locked_amount: coin_amount,
+            end_epoch: epoch::to_epoch(start_time) + end_epoch_duration,
+        };
+        move_to(ve_token_signer, token_data);
+        move_to(ve_token_signer, VeMoveGptTokenRefs {
+            burn_ref: token::generate_burn_ref(ve_mgpt_constructor),
+            transfer_ref: object::generate_transfer_ref(ve_mgpt_constructor),
+        });
+        let mutator_ref = token::generate_mutator_ref(ve_mgpt_constructor);
+        let nft_object: Object<VeMoveGptToken> = object::object_from_constructor_ref(ve_mgpt_constructor);
+        let nft_object_address = object::object_address(&nft_object);
+        aptos_account::deposit_coins<MovegptCoin>(nft_object_address, coin_lock);
+        movegpt_token::freeze_coin_store(nft_object_address);
+        object::transfer(movegpt_signer, nft_object, recipient);
+        let base_uri = string::utf8(MOVEGPT_URI);
+        string::append(&mut base_uri, string_utils::to_string(&object::object_address(&nft_object)));
+        token::set_uri(&mutator_ref, base_uri);
+        event::emit(
+            CreateLockEvent {
+                owner: recipient,
+                amount: coin_amount,
+                lockup_end_epoch: epoch::to_epoch(start_time) + end_epoch_duration,
+                ve_token: nft_object
+            }
+        );
 
         nft_object
     }
@@ -193,7 +257,7 @@ module movegpt::voting_escrow {
         owner: &signer,
         ve_token: Object<VeMoveGptToken>,
     ) acquires VeMoveGptToken, VeMoveGptTokenRefs {
-        let VeMoveGptToken { extend_ref: _, locked_amount: _, end_epoch} =
+        let VeMoveGptToken { extend_ref: _, locked_amount: _, end_epoch } =
             owner_only_destruct_token(owner, ve_token);
 
         // This would fail if the lockup has not expired yet.
@@ -288,7 +352,11 @@ module movegpt::voting_escrow {
         assert!(new_lockup_end_epoch > old_lockup_end_epoch, ELOCKUP_MUST_BE_EXTENDED);
         ve_token_data.end_epoch = new_lockup_end_epoch;
         event::emit(
-            ExtendLockupEvent { owner: signer::address_of(owner), old_lockup_end_epoch, new_lockup_end_epoch, ve_token },
+            ExtendLockupEvent {
+                owner: signer::address_of(
+                    owner
+                ), old_lockup_end_epoch, new_lockup_end_epoch, ve_token
+            },
         );
     }
 
@@ -302,7 +370,11 @@ module movegpt::voting_escrow {
         let nft_signer = object::generate_signer_for_extending(&token_data.extend_ref);
         let nft_address = object::object_address(&ve_token);
         movegpt_token::unfreeze_coin_store(nft_address);
-        aptos_account::transfer_coins<MovegptCoin>(&nft_signer, signer::address_of(owner), coin::balance<MovegptCoin>(nft_address));
+        aptos_account::transfer_coins<MovegptCoin>(
+            &nft_signer,
+            signer::address_of(owner),
+            coin::balance<MovegptCoin>(nft_address)
+        );
         let VeMoveGptTokenRefs { burn_ref, transfer_ref: _ } = move_from<VeMoveGptTokenRefs>(ve_token_addr);
         token::burn(burn_ref);
         token_data

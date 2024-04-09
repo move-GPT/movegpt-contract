@@ -6,6 +6,8 @@ module movegpt::test_voting_escrow {
     #[test_only]
     use aptos_framework::object;
     #[test_only]
+    use aptos_framework::timestamp;
+    #[test_only]
     use movegpt::movegpt_token;
     #[test_only]
     use movegpt::test_helper;
@@ -21,18 +23,18 @@ module movegpt::test_voting_escrow {
         test_helper::setup(deployer);
         let lock_amount = 1000;
         let mgpt_coin = movegpt_token::mint(lock_amount);
-        let nft = voting_escrow::create_lock(signer::address_of(user), mgpt_coin, 2);
+        let nft = voting_escrow::create_lock_with_start_lock_time(signer::address_of(user), mgpt_coin, 2, timestamp::now_seconds());
         let nft_address = object::object_address(&nft);
         assert!(voting_escrow::get_ve_token_lock_amount(nft) == lock_amount, 1);
         assert!(voting_escrow::get_ve_token_lock_end_epoch(nft) == epoch::now() + 2, 1);
-        
+
         // increase amount
         let increase_amount = 500;
         let increase_coin = movegpt_token::mint(increase_amount);
         voting_escrow::increase_amount(user, nft, increase_coin);
         assert!(voting_escrow::get_ve_token_lock_amount(nft) == lock_amount + increase_amount, 1);
         assert!(voting_escrow::get_ve_token_lock_end_epoch(nft) == epoch::now() + 2, 1);
-        
+
         // extend lock
         voting_escrow::extend_lockup(user, nft, 4);
         assert!(voting_escrow::get_ve_token_lock_amount(nft) == lock_amount + increase_amount, 1);

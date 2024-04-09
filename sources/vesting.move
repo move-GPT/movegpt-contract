@@ -302,7 +302,7 @@ module movegpt::vesting {
                 lock_amount
             );
             let epoch_duration = i * vesting_config.vesting_periods;
-            let nft = voting_escrow::create_lock(recipient, coin_lock, epoch_duration);
+            let nft = voting_escrow::create_lock_with_start_lock_time(recipient, coin_lock, epoch_duration, vesting_config.start);
             vector::push_back(&mut nfts, nft);
             i = i + 1;
         };

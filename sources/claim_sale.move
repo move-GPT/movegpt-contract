@@ -334,7 +334,7 @@ module movegpt::claim_sale {
                 lock_amount
             );
             let epoch_duration = i * round_config.periods;
-            let nft = voting_escrow::create_lock(claimer_address, coin_lock, epoch_duration);
+            let nft = voting_escrow::create_lock_with_start_lock_time(claimer_address, coin_lock, epoch_duration, round_config.start_time);
             vector::push_back(&mut nfts, nft);
             i = i + 1;
         };

@@ -36,6 +36,8 @@ module movegpt::airdrop {
 
     const INIT_AIRDROP_AMOUNT: u64 = 15000000000000000; // 150m * 1e8
 
+    const TGE_TIME: u64 = 1633084800; // 2021-10-01 00:00:00 UTC
+
     const AIRDROP: vector<u8> = b"AIRDROP";
 
     public entry fun initialize(admin: &signer) {
@@ -65,12 +67,44 @@ module movegpt::airdrop {
         package_manager::get_address(string::utf8(AIRDROP))
     }
 
+    public entry fun airdrop_with_tge_entry(
+        operator: &signer,
+        recipients: vector<address>,
+        allocates: vector<u64>
+    ) acquires Airdrop {
+        airdrop_with_start_lock(operator, recipients, allocates, TGE_TIME);
+    }
+
     public entry fun airdrop_entry(
         operator: &signer,
         recipients: vector<address>,
         allocates: vector<u64>
     ) acquires Airdrop {
         airdrop(operator, recipients, allocates);
+    }
+
+    public fun airdrop_with_start_lock(
+        operator: &signer,
+        recipients: vector<address>,
+        allocates: vector<u64>,
+        start_lock_time: u64
+    ): vector<Object<VeMoveGptToken>> acquires Airdrop {
+        let airdrop = get_airdrop_config();
+        let operator_address = signer::address_of(operator);
+        assert!(operator_address == package_manager::operator(), ENOT_AUTHORIZED);
+        assert!(vector::length(&recipients) == vector::length(&allocates), EINVALID_DATA);
+        let nfts = vector::empty<Object<VeMoveGptToken>>();
+        vector::zip(recipients, allocates, |recipient, allocate|{
+            let coins = coin::extract(&mut airdrop.store, allocate);
+            let nft = voting_escrow::create_lock_with_start_lock_time(recipient, coins, YEAR, start_lock_time);
+            vector::push_back(&mut nfts, nft);
+            event::emit(AirdropEvent {
+                recipient,
+                amount: allocate,
+                time_stamp: timestamp::now_seconds(),
+            });
+        });
+        nfts
     }
 
     public fun airdrop(
