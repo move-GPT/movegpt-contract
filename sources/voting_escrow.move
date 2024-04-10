@@ -51,8 +51,12 @@ module movegpt::voting_escrow {
     const COLLECTION_NAME: vector<u8> = b"MoveGPT veNFT";
     /// COLLECTION_DESC
     const COLLECTION_DESC: vector<u8> = b"MoveGPT veNFT";
+    /// COLLECTION_NAME
+    const TOKEN_NAME: vector<u8> = b"MoveGPT veNFT";
+    /// COLLECTION_DESC
+    const TOKEN_DESC: vector<u8> = b"MoveGPT veNFT";
     /// MGPT_URI
-    const MOVEGPT_URI: vector<u8> = b"https://movegpt.com";
+    const MOVEGPT_URI: vector<u8> = b"https://api-lp.movegpt.io/api/ve-nft/";
 
     struct VeMoveGptToken has key {
         extend_ref: ExtendRef,

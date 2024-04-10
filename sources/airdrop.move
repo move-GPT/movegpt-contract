@@ -34,9 +34,9 @@ module movegpt::airdrop {
         time_stamp: u64,
     }
 
-    const INIT_AIRDROP_AMOUNT: u64 = 15000000000000000; // 150m * 1e8
+    const INIT_AIRDROP_AMOUNT: u64 = 12000000000000000; // 120m * 1e8
 
-    const TGE_TIME: u64 = 1633084800; // 2021-10-01 00:00:00 UTC
+    const TGE_TIME: u64 = 1713164400; // 2021-04-15 07:00:00 UTC
 
     const AIRDROP: vector<u8> = b"AIRDROP";
 

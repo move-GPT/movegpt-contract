@@ -29,7 +29,7 @@ module movegpt::vesting {
     // 1B * 1e8
     const INIT_PRIVATE_ROUND_AMOUNT: u64 = 4000000000000000;
     // 40m * 1e8
-    const INIT_IDO_ROUND_AMOUNT: u64 = 12000000000000000;
+    const INIT_IDO_ROUND_AMOUNT: u64 = 15000000000000000;
     // 120m * 1e8
     const INIT_INITIAL_LIQUIDITY_AMOUNT: u64 = 5000000000000000;
     // 50m * 1e8
@@ -39,7 +39,7 @@ module movegpt::vesting {
     // 100m * 1e8
     const INIT_STAKING_REWARD_AMOUNT: u64 = 24000000000000000;
     // 225m * 1e8
-    const INIT_AIRDROP_AMOUNT: u64 = 15000000000000000;
+    const INIT_AIRDROP_AMOUNT: u64 = 12000000000000000;
     // 150m * 1e8
     const INIT_MARKETING_AMOUNT: u64 = 15000000000000000; // 150m * 1e8
     const VESTING: vector<u8> = b"VESTING";
@@ -47,7 +47,7 @@ module movegpt::vesting {
     const MONTHS_IN_SECONDS: u64 = 30 * 86400;
     // 1 quarter 13 epch
     const QUARTER_IN_EPOCH: u64 = 13;
-    const START: u64 = 1630454400; // 2021-09-01 00:00:00
+    const START: u64 = 1713164400; // 2021-04-15 07:00:00 UTC
 
     struct VestingConfig has key, store {
         coin_store: Coin<MovegptCoin>,

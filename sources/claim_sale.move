@@ -37,7 +37,7 @@ module movegpt::claim_sale {
 
     const INIT_PRIVATE_ROUND_AMOUNT: u64 = 4000000000000000;
     // 40m * 1e8
-    const INIT_IDO_ROUND_AMOUNT: u64 = 12000000000000000;
+    const INIT_IDO_ROUND_AMOUNT: u64 = 15000000000000000;
     // 120m * 1e8
     const TGE_DECIMALS: u64 = 100;
     // 1 quarter 13 epch
@@ -54,6 +54,8 @@ module movegpt::claim_sale {
 
     struct ConfigRoud has key, store {
         claimers: SmartTable<address, Claimer>,
+        claimers_spores: SmartTable<address, Claimer>,
+        claimers_cell: SmartTable<address, Claimer>,
         balances: Coin<MovegptCoin>,
         tge: u64,
         total_claimed: u64,
@@ -126,6 +128,16 @@ module movegpt::claim_sale {
     }
 
     #[view]
+    public fun claimer_ido_spore_info_view(claimer: address): Claimer acquires Sales {
+        *get_claimers_spore_info(claimer, &mut get_sales_config().ido_round)
+    }
+
+    #[view]
+    public fun claimer_ido_cell_info_view(claimer: address): Claimer acquires Sales {
+        *get_claimers_cell_info(claimer, &mut get_sales_config().ido_round)
+    }
+
+    #[view]
     public fun claimer_private_info_view(claimer: address): Claimer acquires Sales {
         *get_claimers_info(claimer, &mut get_sales_config().private_round)
     }
@@ -147,22 +159,26 @@ module movegpt::claim_sale {
             paused: false,
             private_round: ConfigRoud {
                 claimers: smart_table::new(),
+                claimers_cell: smart_table::new(),
+                claimers_spores: smart_table::new(),
                 balances: private_coin,
                 tge: 10,
                 lock_duration: 4 * QUARTER_IN_EPOCH,
                 periods: QUARTER_IN_EPOCH,
-                start_time: 1711182125,
+                start_time: 1713164400, // 2021-04-15 07:00:00 UTC
                 total_bought: 0,
                 total_claimed: 0,
                 withdrawed: 0,
             },
             ido_round: ConfigRoud {
                 claimers: smart_table::new(),
+                claimers_cell: smart_table::new(),
+                claimers_spores: smart_table::new(),
                 balances: ido_coin,
                 tge: 25,
                 lock_duration: 3 * QUARTER_IN_EPOCH,
                 periods: QUARTER_IN_EPOCH,
-                start_time: 1711182125,
+                start_time: 1713164400, // 2021-04-15 07:00:00 UTC
                 total_bought: 0,
                 total_claimed: 0,
                 withdrawed: 0,
@@ -175,6 +191,7 @@ module movegpt::claim_sale {
     public fun is_initialized(): bool {
         package_manager::address_exists(string::utf8(CLAIM_SALE))
     }
+
     #[view]
     public fun claim_sale(): address {
         package_manager::get_address(string::utf8(CLAIM_SALE))
@@ -266,7 +283,7 @@ module movegpt::claim_sale {
         };
     }
 
-    public entry fun refund_ido_entry(claimer: &signer, round_id: u8) acquires Sales {
+    public entry fun refund_ido_mgpt_entry(claimer: &signer, round_id: u8) acquires Sales {
         let claimer_address = signer::address_of(claimer);
         let sales_config = get_sales_config();
         let round_config = &mut sales_config.ido_round;
@@ -283,27 +300,44 @@ module movegpt::claim_sale {
         });
     }
 
+    public entry fun refund_ido_spore_entry(claimer: &signer, round_id: u8) acquires Sales {
+        let claimer_address = signer::address_of(claimer);
+        let sales_config = get_sales_config();
+        let round_config = &mut sales_config.ido_round;
+        let claimer_info = get_claimers_spore_info(claimer_address, round_config);
+        assert!(claimer_info.claimed == 0, ENOT_EALREADY_CLAIMED);
+        assert!(!claimer_info.is_refund, ENOT_EALREADY_REFUNDED);
+        claimer_info.is_refund = true;
+        round_config.total_bought = round_config.total_bought - claimer_info.allocate;
+        event::emit(RefundEvent {
+            user: signer::address_of(claimer),
+            amount: claimer_info.allocate,
+            round: round_id,
+            time_stamp: timestamp::now_seconds(),
+        });
+    }
+
     public entry fun claim_private_entry(claimer: &signer) acquires Sales {
         claim_private(claimer);
     }
 
-    public entry fun claim_entry(claimer: &signer) acquires Sales {
-        claim_ido(claimer);
+    public entry fun claim_entry(claimer: &signer, claim_id: u64) acquires Sales {
+        claim_ido(claimer, claim_id);
     }
 
-    public(friend) fun claim_ido(claimer: &signer): vector<Object<VeMoveGptToken>> acquires Sales {
+    public(friend) fun claim_ido(claimer: &signer, claim_id: u64): vector<Object<VeMoveGptToken>> acquires Sales {
         let sales_config = get_sales_config();
         assert!(!sales_config.paused, ENOT_RUNNING);
-        claim(claimer, &mut sales_config.ido_round)
+        safe_claim_ido(claimer, &mut sales_config.ido_round, claim_id)
     }
 
     public(friend) fun claim_private(claimer: &signer): vector<Object<VeMoveGptToken>> acquires Sales {
         let sales_config = get_sales_config();
         assert!(!sales_config.paused, ENOT_RUNNING);
-        claim(claimer, &mut sales_config.private_round)
+        safe_claim_private(claimer, &mut sales_config.private_round)
     }
 
-    inline fun claim(claimer: &signer, round_config: &mut ConfigRoud): vector<Object<VeMoveGptToken>> {
+    inline fun safe_claim_private(claimer: &signer, round_config: &mut ConfigRoud): vector<Object<VeMoveGptToken>> {
         let claimer_address = signer::address_of(claimer);
         let current_time = timestamp::now_seconds();
         assert!(current_time > round_config.start_time, ENOT_CLAIM_TIME);
@@ -337,7 +371,74 @@ module movegpt::claim_sale {
                 lock_amount
             );
             let epoch_duration = i * round_config.periods;
-            let nft = voting_escrow::create_lock_with_start_lock_time(claimer_address, coin_lock, epoch_duration, round_config.start_time);
+            let nft = voting_escrow::create_lock_with_start_lock_time(
+                claimer_address,
+                coin_lock,
+                epoch_duration,
+                round_config.start_time
+            );
+            vector::push_back(&mut nfts, nft);
+            i = i + 1;
+        };
+        claimer_info.claimed = claimer_info.allocate;
+        event::emit(ClaimEvent {
+            claimer: claimer_address,
+            amount: claimer_info.allocate,
+            time_stamp: current_time,
+        });
+        nfts
+    }
+
+    inline fun safe_claim_ido(
+        claimer: &signer,
+        round_config: &mut ConfigRoud,
+        claim_id: u64
+    ): vector<Object<VeMoveGptToken>> {
+        let claimer_address = signer::address_of(claimer);
+        let current_time = timestamp::now_seconds();
+        assert!(current_time > round_config.start_time, ENOT_CLAIM_TIME);
+        let claimer_info = if (claim_id == 0) get_claimers_info(
+            claimer_address,
+            round_config
+        ) else if (claim_id == 1) get_claimers_spore_info(claimer_address, round_config) else get_claimers_cell_info(
+            claimer_address,
+            round_config
+        );
+        assert!(!claimer_info.is_refund, ENOT_EALREADY_REFUNDED);
+        assert!(claimer_info.claimed == 0, ENOT_EALREADY_CLAIMED);
+        let tge_amount = math64::mul_div(claimer_info.allocate, round_config.tge, TGE_DECIMALS);
+        let lock_amount = math64::mul_div(
+            claimer_info.allocate - tge_amount,
+            round_config.periods,
+            round_config.lock_duration
+        );
+        let total_nft = round_config.lock_duration / round_config.periods;
+        aptos_account::deposit_coins<MovegptCoin>(
+            claimer_address,
+            coin::extract(&mut round_config.balances, tge_amount)
+        );
+        let i = 1;
+        let nfts = vector::empty<Object<VeMoveGptToken>>();
+        loop {
+            if (i > total_nft) {
+                break
+            };
+            if (lock_amount >= coin::value(&round_config.balances)) {
+                i = total_nft
+            };
+            let coin_lock = if (lock_amount >= coin::value(&round_config.balances)) coin::extract_all(
+                &mut round_config.balances
+            ) else coin::extract(
+                &mut round_config.balances,
+                lock_amount
+            );
+            let epoch_duration = i * round_config.periods;
+            let nft = voting_escrow::create_lock_with_start_lock_time(
+                claimer_address,
+                coin_lock,
+                epoch_duration,
+                round_config.start_time
+            );
             vector::push_back(&mut nfts, nft);
             i = i + 1;
         };
@@ -370,7 +471,7 @@ module movegpt::claim_sale {
             operator,
             coin::extract(&mut round_config.balances, *total_amount_avaiable)
         );
-        round_config.withdrawed =*total_amount_avaiable;
+        round_config.withdrawed = *total_amount_avaiable;
         event::emit(WithdrawEvent {
             operator,
             amount: *total_amount_avaiable,
@@ -427,8 +528,88 @@ module movegpt::claim_sale {
         });
     }
 
+    public entry fun add_ido_claimers_spore(
+        operator: &signer,
+        recipients: vector<address>,
+        allocates: vector<u64>,
+    ) acquires Sales {
+        let sales_config = get_sales_config();
+        assert!(!sales_config.paused, ENOT_RUNNING);
+        assert!(signer::address_of(operator) == package_manager::operator(), ENOT_AUTHORIZED);
+        assert!(vector::length(&recipients) == vector::length(&allocates), ENOT_VALI_INPUT);
+        add_ido_round_claimers_spore(&mut sales_config.ido_round, recipients, allocates);
+    }
+
+    inline fun add_ido_round_claimers_spore(
+        round_config: &mut ConfigRoud,
+        recipients: vector<address>,
+        allocates: vector<u64>,
+    ) {
+        vector::zip(recipients, allocates, |recipient, allocate|{
+            round_config.total_bought = round_config.total_bought + allocate;
+            smart_table::upsert(
+                &mut round_config.claimers_spores,
+                recipient,
+                Claimer {
+                    allocate,
+                    claimed: 0,
+                    is_refund: false,
+                }
+            );
+        });
+        event::emit(AddClaimerEvent {
+            claimers: recipients,
+            amount: allocates,
+            time_stamp: timestamp::now_seconds(),
+        });
+    }
+
+    public entry fun add_ido_claimers_cell(
+        operator: &signer,
+        recipients: vector<address>,
+        allocates: vector<u64>,
+    ) acquires Sales {
+        let sales_config = get_sales_config();
+        assert!(!sales_config.paused, ENOT_RUNNING);
+        assert!(signer::address_of(operator) == package_manager::operator(), ENOT_AUTHORIZED);
+        assert!(vector::length(&recipients) == vector::length(&allocates), ENOT_VALI_INPUT);
+        add_round_claimers(&mut sales_config.ido_round, recipients, allocates);
+    }
+
+    inline fun add_ido_round_claimers_cell(
+        round_config: &mut ConfigRoud,
+        recipients: vector<address>,
+        allocates: vector<u64>,
+    ) {
+        vector::zip(recipients, allocates, |recipient, allocate|{
+            round_config.total_bought = round_config.total_bought + allocate;
+            smart_table::upsert(
+                &mut round_config.claimers_cell,
+                recipient,
+                Claimer {
+                    allocate,
+                    claimed: 0,
+                    is_refund: false,
+                }
+            );
+        });
+        event::emit(AddClaimerEvent {
+            claimers: recipients,
+            amount: allocates,
+            time_stamp: timestamp::now_seconds(),
+        });
+    }
+
     inline fun get_claimers_info(claimer: address, round_config: &mut ConfigRoud): &mut Claimer {
         smart_table::borrow_mut(&mut round_config.claimers, claimer)
+    }
+
+    inline fun get_claimers_spore_info(claimer: address, round_config: &mut ConfigRoud): &mut Claimer {
+        smart_table::borrow_mut(&mut round_config.claimers_spores, claimer)
+    }
+
+    inline fun get_claimers_cell_info(claimer: address, round_config: &mut ConfigRoud): &mut Claimer {
+        smart_table::borrow_mut(&mut round_config.claimers_cell, claimer)
     }
 
     inline fun get_sales_config(): &mut Sales {
