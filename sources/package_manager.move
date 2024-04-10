@@ -78,7 +78,7 @@ module movegpt::package_manager {
     }
 
     public entry fun update_operator(governor: &signer, new_operator: address) acquires AdministrativeData, PermissionConfig {
-        operator_only_mut_admin_data(governor).operator = new_operator;
+        governance_only_mut_admin_data(governor).operator = new_operator;
     }
 
     public entry fun update_governance(
