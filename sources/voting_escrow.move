@@ -219,7 +219,7 @@ module movegpt::voting_escrow {
             movegpt_signer,
             string::utf8(COLLECTION_NAME),
             string::utf8(COLLECTION_DESC),
-            string::utf8(COLLECTION_NAME),
+            string::utf8(TOKEN_NAME),
             option::none<Royalty>(),
             string::utf8(MOVEGPT_URI),
         );
