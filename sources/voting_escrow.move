@@ -51,10 +51,10 @@ module movegpt::voting_escrow {
     const COLLECTION_NAME: vector<u8> = b"MoveGPT veNFT";
     /// COLLECTION_DESC
     const COLLECTION_DESC: vector<u8> = b"MoveGPT veNFT";
-    /// COLLECTION_NAME
-    const TOKEN_NAME: vector<u8> = b"MoveGPT veNFT";
-    /// COLLECTION_DESC
-    const TOKEN_DESC: vector<u8> = b"MoveGPT veNFT";
+    /// TOKEN_NAME
+    const TOKEN_NAME: vector<u8> = b"veMGPT";
+    /// TOKEN_DESC
+    const TOKEN_DESC: vector<u8> = b"NFT representing voting power in Movegpt corresponding to $MGPT locked up";
     /// MGPT_URI
     const MOVEGPT_URI: vector<u8> = b"https://api-lp.movegpt.io/api/ve-nft/";
 
@@ -169,7 +169,7 @@ module movegpt::voting_escrow {
             movegpt_signer,
             string::utf8(COLLECTION_NAME),
             string::utf8(COLLECTION_DESC),
-            string::utf8(COLLECTION_NAME),
+            string::utf8(TOKEN_NAME),
             option::none<Royalty>(),
             string::utf8(MOVEGPT_URI),
         );
