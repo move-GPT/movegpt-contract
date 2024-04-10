@@ -94,6 +94,20 @@ module movegpt::claim_sale {
     }
 
     #[event]
+    struct AddSporeClaimerEvent has drop, store {
+        claimers: vector<address>,
+        amount: vector<u64>,
+        time_stamp: u64,
+    }
+
+    #[event]
+    struct AddCellClaimerEvent has drop, store {
+        claimers: vector<address>,
+        amount: vector<u64>,
+        time_stamp: u64,
+    }
+
+    #[event]
     struct RefundEvent has drop, store {
         user: address,
         amount: u64,
@@ -557,7 +571,7 @@ module movegpt::claim_sale {
                 }
             );
         });
-        event::emit(AddClaimerEvent {
+        event::emit(AddSporeClaimerEvent {
             claimers: recipients,
             amount: allocates,
             time_stamp: timestamp::now_seconds(),
@@ -573,7 +587,7 @@ module movegpt::claim_sale {
         assert!(!sales_config.paused, ENOT_RUNNING);
         assert!(signer::address_of(operator) == package_manager::operator(), ENOT_AUTHORIZED);
         assert!(vector::length(&recipients) == vector::length(&allocates), ENOT_VALI_INPUT);
-        add_round_claimers(&mut sales_config.ido_round, recipients, allocates);
+        add_ido_round_claimers_cell(&mut sales_config.ido_round, recipients, allocates);
     }
 
     inline fun add_ido_round_claimers_cell(
@@ -593,7 +607,7 @@ module movegpt::claim_sale {
                 }
             );
         });
-        event::emit(AddClaimerEvent {
+        event::emit(AddCellClaimerEvent {
             claimers: recipients,
             amount: allocates,
             time_stamp: timestamp::now_seconds(),
