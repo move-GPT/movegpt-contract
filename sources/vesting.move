@@ -48,7 +48,7 @@ module movegpt::vesting {
     const MONTHS_IN_SECONDS: u64 = 30 * 86400;
     // 1 quarter 13 epch
     const QUARTER_IN_EPOCH: u64 = 13;
-    const START: u64 = 1713164400; // 2021-04-15 07:00:00 UTC
+    const START: u64 = 1713164400; // 2024-04-15 07:00:00 UTC
 
     struct VestingConfig has key, store {
         coin_store: Coin<MovegptCoin>,

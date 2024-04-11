@@ -35,10 +35,10 @@ module movegpt::claim_sale {
     /// ENOT balance to withdraw
     const ENOT_WITDRAW_BALANCE: u64 = 8;
 
-    const INIT_PRIVATE_ROUND_AMOUNT: u64 = 4000000000000000;
     // 40m * 1e8
+    const INIT_PRIVATE_ROUND_AMOUNT: u64 = 4000000000000000;
+    // 150m * 1e8
     const INIT_IDO_ROUND_AMOUNT: u64 = 15000000000000000;
-    // 120m * 1e8
     const TGE_DECIMALS: u64 = 100;
     // 1 quarter 13 epch
     const QUARTER_IN_EPOCH: u64 = 13;
@@ -179,7 +179,7 @@ module movegpt::claim_sale {
                 tge: 10,
                 lock_duration: 4 * QUARTER_IN_EPOCH,
                 periods: QUARTER_IN_EPOCH,
-                start_time: 1713164400, // 2021-04-15 07:00:00 UTC
+                start_time: 1713164400, // 2024-04-15 07:00:00 UTC
                 total_bought: 0,
                 total_claimed: 0,
                 withdrawed: 0,
@@ -192,7 +192,7 @@ module movegpt::claim_sale {
                 tge: 25,
                 lock_duration: 3 * QUARTER_IN_EPOCH,
                 periods: QUARTER_IN_EPOCH,
-                start_time: 1713164400, // 2021-04-15 07:00:00 UTC
+                start_time: 1713164400, // 2024-04-15 07:00:00 UTC
                 total_bought: 0,
                 total_claimed: 0,
                 withdrawed: 0,
