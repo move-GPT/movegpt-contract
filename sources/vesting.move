@@ -25,23 +25,24 @@ module movegpt::vesting {
     /// Not vesting again
     const ENOT_VESTING_AGAIN: u64 = 4;
 
-    const INIT_MINT_AMOUNT: u64 = 100000000000000000;
     // 1B * 1e8
-    const INIT_PRIVATE_ROUND_AMOUNT: u64 = 4000000000000000;
+    const INIT_MINT_AMOUNT: u64 = 100000000000000000;
     // 40m * 1e8
-    const INIT_IDO_ROUND_AMOUNT: u64 = 15000000000000000;
-    // 120m * 1e8
-    const INIT_INITIAL_LIQUIDITY_AMOUNT: u64 = 5000000000000000;
-    // 50m * 1e8
-    const INIT_TEAM_AMOUNT: u64 = 15000000000000000;
+    const INIT_PRIVATE_ROUND_AMOUNT: u64 = 4000000000000000;
     // 150m * 1e8
-    const INIT_DEV_AMOUNT: u64 = 10000000000000000;
+    const INIT_IDO_ROUND_AMOUNT: u64 = 15000000000000000;
+    // 50m * 1e8
+    const INIT_INITIAL_LIQUIDITY_AMOUNT: u64 = 5000000000000000;
+    // 150m * 1e8
+    const INIT_TEAM_AMOUNT: u64 = 15000000000000000;
     // 100m * 1e8
+    const INIT_DEV_AMOUNT: u64 = 10000000000000000;
+    // 240m * 1e8
     const INIT_STAKING_REWARD_AMOUNT: u64 = 24000000000000000;
-    // 225m * 1e8
+    // 120m * 1e8
     const INIT_AIRDROP_AMOUNT: u64 = 12000000000000000;
     // 150m * 1e8
-    const INIT_MARKETING_AMOUNT: u64 = 15000000000000000; // 150m * 1e8
+    const INIT_MARKETING_AMOUNT: u64 = 15000000000000000;
     const VESTING: vector<u8> = b"VESTING";
     const DECIMALS: u64 = 100;
     const MONTHS_IN_SECONDS: u64 = 30 * 86400;
@@ -337,11 +338,11 @@ module movegpt::vesting {
             let parts_cal = (current_time - vesting_config.start) / vesting_config.vesting_periods;
             let parts = math64::min(parts_cal, total_parts);
             let vesting_amount = math64::mul_div(
-                coin::value(&vesting_config.coin_store) - tge_amount,
+                coin::value(&vesting_config.coin_store),
                 (parts - vesting_config.last_vested_period),
                 (total_parts - vesting_config.last_vested_period)
             );
-            let claimable = tge_amount + vesting_amount - math64::min(vesting_config.claimed, tge_amount);
+            let claimable = vesting_amount;
             assert!(claimable > 0, ENOT_AMOUNT_CLAIMABLE);
             vesting_config.last_vested_period = parts;
             vesting_config.claimed = vesting_config.claimed + claimable;
