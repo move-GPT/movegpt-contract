@@ -44,7 +44,7 @@ module movegpt::package_manager {
     }
 
     /// Create a separate vote manager object to store administrative and accounting data.
-    public entry fun initialize() acquires PermissionConfig {
+    public entry fun initialize(admin: &signer) acquires PermissionConfig {
         assert!(signer::address_of(admin) == @deployer, ENOT_AUTHORIZED);
         if (is_initialized()) {
             return
